@@ -1,0 +1,23 @@
+# Raw TQIP data files — not tracked in version control
+data/raw/*.xlsx
+data/raw/*.xls
+data/raw/*.csv
+
+# Processed outputs — not tracked in version control
+data/processed/*.csv
+data/processed/*.xlsx
+
+# Generated figures — not tracked in version control
+figures/*.png
+figures/*.pdf
+figures/*.svg
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+.ipynb_checkpoints/
+
+# OS / editor artefacts
+.DS_Store
+*.swp
