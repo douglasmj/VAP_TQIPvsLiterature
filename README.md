@@ -11,6 +11,10 @@ estimates.
 ```
 VAP_TQIPvsLiterature/
 ├── TQIP_data_exploration_cleaning.py   # data-cleaning and exploration script
+├── src/
+│   └── tqip_preprocessing.py           # reusable preprocessing helpers
+├── tests/
+│   └── test_tqip_preprocessing.py      # unit tests for preprocessing logic
 ├── requirements.txt                    # Python dependencies
 ├── data/
 │   ├── raw/                            # place raw input files here (not tracked)
@@ -28,32 +32,48 @@ Place the raw TQIP VAP extract at:
 data/raw/VAP_TQIP_2017-2022.xlsx
 ```
 
-The file is a standard TQIP export covering years 2017–2022 and must contain
-at least the following columns:
-
-| Column     | Description                         |
-|------------|-------------------------------------|
-| `YODISCH`  | Year of discharge                   |
-| `AGEyears` | Patient age in years                |
-| `riss`     | Revised Injury Severity Score (ISS) |
+The file is a standard TQIP export covering years 2017–2022.
 
 ---
 
 ## Workflow
 
-`TQIP_data_exploration_cleaning.py` runs the following steps:
+`TQIP_data_exploration_cleaning.py` runs the following preprocessing workflow:
 
-1. **Load** the raw Excel file and print the total patient count.
-2. **Summarise** patient counts by discharge year (`YODISCH`).
-3. **Exclude** patients missing `YODISCH`, reporting count and percentage.
-4. **Apply cohort exclusions** in order, printing patients remaining after each:
-   - Exclude patients with missing `AGEyears`.
-   - Exclude patients with `AGEyears < 18` (pediatric).
-   - Exclude patients with `riss < 16` (ISS < 16).
-5. **Generate** an exploratory histogram of patient count by discharge year,
-   saved to `figures/patient_count_by_year.png`.
-6. **Export** the cleaned dataset to `data/processed/vap_ohe.csv` for
-   downstream analysis.
+1. **Validate required columns** and fail clearly if key columns are missing.
+2. **Print cohort counts** (overall and by `YODISCH` discharge year).
+3. **Apply exclusions in order**, printing remaining patients after each:
+   - missing `YODISCH`
+   - missing `AGEyears`
+   - `AGEyears < 18`
+   - `riss < 16`
+4. **Harmonize binary variables** for cross-year consistency:
+   - `ETHNICITY`: `2 -> 0` (`1 = Hispanic`, `2 = Not Hispanic`)
+   - `SUPPLEMENTALOXYGEN`: `1 -> 0`, `2 -> 1` (`1 = No`, `2 = Yes`)
+   - `RESPIRATORYASSISTANCE`: `1 -> 0`, `2 -> 1` (`1 = No`, `2 = Yes`)
+   - `WITHDRAWALLST`: `2 -> 0` (harmonize shifted year-specific coding to binary)
+   - `PREHOSPITALCARDIACARREST`: `2 -> 0` (same year-specific harmonization pattern)
+   - `HC_RESPIRATORY`: unchanged (already 0/1)
+   Value counts are printed before/after recoding for auditability.
+5. **Normalize temperature units** using a sanity check:
+   likely Fahrenheit values (`>45` and `<=120`) are converted to Celsius.
+6. **Handle AIS fields**:
+   - keep AIS scores numeric (not one-hot encoded)
+   - recode `9` (unknown) to `NaN`
+   - create region injury indicators (`inj_*`) where AIS `> 0`
+   - create severe injury indicators (`severe_*`) where AIS `>= 3`
+7. **Feature engineering / one-hot encoding**:
+   - one-hot encode `SEX` and `HMRRHGCTRLSURGTYPE`
+   - rename OHE columns using readable names from the TQIP mapping
+   - derive trauma center verification OHE columns: `L1`, `L2`, `L3`, `L_unkn`
+   - drop original encoded columns (`SEX`, `HMRRHGCTRLSURGTYPE`, `VERIFICATIONLEVEL`)
+8. **Generate exploratory figures** in `figures/`:
+   - patient count by discharge year
+   - `WITHDRAWALLST` histograms split by year (2017–2022)
+   - temperature distribution figure
+   - numeric feature distribution grid
+   - categorical feature distribution grid
+9. **Write final model-ready output** to `data/processed/vap_ohe.csv`.
 
 ---
 
@@ -61,8 +81,12 @@ at least the following columns:
 
 | Path                             | Description                                    |
 |----------------------------------|------------------------------------------------|
-| `figures/patient_count_by_year.png` | Histogram: patient count by discharge year  |
-| `data/processed/vap_ohe.csv`     | Cleaned, analysis-ready dataset                |
+| `figures/patient_count_by_year.png` | Patient count by discharge year             |
+| `figures/withdrawal_lst_by_year.png` | WITHDRAWALLST histograms split by year      |
+| `figures/temperature_distribution.png` | Temperature distribution exploration       |
+| `figures/numeric_feature_distributions.png` | Numeric feature distribution grid      |
+| `figures/categorical_feature_distributions.png` | Categorical feature distribution grid |
+| `data/processed/vap_ohe.csv`     | Harmonized + engineered analysis-ready dataset |
 
 ---
 
@@ -84,5 +108,11 @@ Copy the raw TQIP extract to `data/raw/VAP_TQIP_2017-2022.xlsx`.
 python TQIP_data_exploration_cleaning.py
 ```
 
-The script will print a labelled summary of cohort counts at each exclusion
-step and write the figure and CSV to the locations listed above.
+### 4. Run tests
+
+```bash
+pytest -q
+```
+
+The script prints labelled cohort/exclusion summaries, recoding audits, and
+writes processed outputs and figures to the locations listed above.
