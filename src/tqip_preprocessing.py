@@ -133,6 +133,8 @@ DERIVED_FEATURES = [
     "L_unkn",
     "HC_RESPIRATORY",
 ]
+RAW_ENCODED_COLUMNS_TO_DROP = {"SEX", "HMRRHGCTRLSURGTYPE", "VERIFICATIONLEVEL"}
+WITHDRAWAL_PLOT_YEARS = list(range(2017, 2023))
 
 
 def validate_required_columns(df: pd.DataFrame, required_columns: list[str] | None = None) -> None:
@@ -214,19 +216,20 @@ def add_one_hot_features(df: pd.DataFrame) -> pd.DataFrame:
     for col in to_encode:
         work[col] = work[col].astype(float)
 
-    vap_ohe = pd.get_dummies(data=work, prefix=to_encode, columns=to_encode, dtype=int)
-    vap_ohe = vap_ohe.rename(columns=OHE_RENAME_MAP)
+    encoded_df = pd.get_dummies(data=work, prefix=to_encode, columns=to_encode, dtype=int)
+    encoded_df = encoded_df.rename(columns=OHE_RENAME_MAP)
 
-    vap_ohe["L1"] = (vap_ohe["VERIFICATIONLEVEL"] == 1).astype(int)
-    vap_ohe["L2"] = (vap_ohe["VERIFICATIONLEVEL"] == 2).astype(int)
-    vap_ohe["L3"] = (vap_ohe["VERIFICATIONLEVEL"] == 3).astype(int)
-    vap_ohe["L_unkn"] = vap_ohe["VERIFICATIONLEVEL"].isna().astype(int)
-    return vap_ohe
+    encoded_df["L1"] = (encoded_df["VERIFICATIONLEVEL"] == 1).astype(int)
+    encoded_df["L2"] = (encoded_df["VERIFICATIONLEVEL"] == 2).astype(int)
+    encoded_df["L3"] = (encoded_df["VERIFICATIONLEVEL"] == 3).astype(int)
+    encoded_df["L_unkn"] = encoded_df["VERIFICATIONLEVEL"].isna().astype(int)
+    return encoded_df
 
 
 def prepare_final_export(df: pd.DataFrame) -> pd.DataFrame:
     requested = REQUESTED_CATEGORICAL_FEATURES + REQUESTED_NUMERIC_FEATURES + DERIVED_FEATURES
-    keep_columns = [col for col in requested if col in df.columns and col not in {"SEX", "HMRRHGCTRLSURGTYPE", "VERIFICATIONLEVEL"}]
+    # Drop raw encoded columns so final output keeps harmonized + engineered features only.
+    keep_columns = [col for col in requested if col in df.columns and col not in RAW_ENCODED_COLUMNS_TO_DROP]
     return df[keep_columns].copy()
 
 
@@ -249,14 +252,17 @@ def plot_patient_count_by_year(df: pd.DataFrame, out_dir: Path) -> None:
 
 
 def plot_withdrawal_lst_by_year(df: pd.DataFrame, out_dir: Path) -> None:
-    years = [2017, 2018, 2019, 2020, 2021, 2022]
-    fig, ax = plt.subplots(6, 1, sharex=True, figsize=(6, 8), dpi=120)
+    years = WITHDRAWAL_PLOT_YEARS
+    fig, ax = plt.subplots(len(years), 1, sharex=True, figsize=(6, 8), dpi=120, squeeze=False)
     ax = ax.ravel()
+    unique_vals = sorted(df["WITHDRAWALLST"].dropna().unique())
+    plot_bins = max(len(unique_vals), 3)
+    x_ticks = unique_vals if unique_vals else [0, 1, 2]
     for i, yr in enumerate(years):
         year_slice = df.loc[df["YODISCH"] == yr, "WITHDRAWALLST"]
-        sns.histplot(x=year_slice, bins=3, ax=ax[i], discrete=True)
+        sns.histplot(x=year_slice, bins=plot_bins, ax=ax[i], discrete=True)
         ax[i].set_title(str(yr), fontsize=8)
-        ax[i].set_xticks([0, 1, 2])
+        ax[i].set_xticks(x_ticks)
     fig.suptitle("TQIP Withdrawal of LST Values by Year")
     fig.tight_layout()
     fig.savefig(out_dir / "withdrawal_lst_by_year.png", dpi=300, bbox_inches="tight")

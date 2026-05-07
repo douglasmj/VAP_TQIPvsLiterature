@@ -1,7 +1,7 @@
-"""Top-level entrypoint for TQIP preprocessing and exploratory output generation."""
+"""Load raw TQIP data, run preprocessing + feature engineering, generate figures, and export vap_ohe.csv."""
 
-import pandas as pd
 from pathlib import Path
+import pandas as pd
 
 from src.tqip_preprocessing import (
     add_one_hot_features,

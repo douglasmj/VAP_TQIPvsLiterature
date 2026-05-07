@@ -1,9 +1,5 @@
 import numpy as np
 import pandas as pd
-from pathlib import Path
-import sys
-
-sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from src.tqip_preprocessing import (
     add_one_hot_features,
@@ -14,7 +10,7 @@ from src.tqip_preprocessing import (
 )
 
 
-def test_apply_ordered_exclusions() -> None:
+def test_apply_ordered_exclusions_removes_invalid_rows() -> None:
     df = pd.DataFrame(
         {
             "YODISCH": [2019, np.nan, 2020, 2021, 2022],
@@ -24,11 +20,12 @@ def test_apply_ordered_exclusions() -> None:
     )
     out, steps = apply_ordered_exclusions(df)
     assert len(out) == 1
+    assert out.iloc[0]["YODISCH"] == 2019
     assert out.iloc[0]["AGEyears"] == 35
     assert [step["removed"] for step in steps] == [1, 1, 1, 1]
 
 
-def test_binary_recoding_logic() -> None:
+def test_recode_binary_variables_harmonizes_values() -> None:
     df = pd.DataFrame(
         {
             "ETHNICITY": [1, 2],
@@ -48,7 +45,7 @@ def test_binary_recoding_logic() -> None:
     assert out["HC_RESPIRATORY"].tolist() == [0, 1]
 
 
-def test_temperature_conversion_logic() -> None:
+def test_normalize_temperature_celsius_converts_fahrenheit() -> None:
     df = pd.DataFrame({"TEMPERATURE": [37.0, 98.6, 45.0, 121.0, np.nan]})
     out, converted_n = normalize_temperature_celsius(df)
     assert converted_n == 1
@@ -59,7 +56,7 @@ def test_temperature_conversion_logic() -> None:
     assert np.isnan(out.loc[4, "TEMPERATURE"])
 
 
-def test_ais_unknown_recode_and_derived_columns() -> None:
+def test_recode_ais_and_derive_handles_unknown_and_creates_indicators() -> None:
     df = pd.DataFrame(
         {
             "mxaisbr_HeadNeck": [9, 2, 3],
@@ -70,16 +67,19 @@ def test_ais_unknown_recode_and_derived_columns() -> None:
         }
     )
     out = recode_ais_and_derive(df)
-    assert np.isnan(out.loc[0, "mxaisbr_HeadNeck"])
-    assert np.isnan(out.loc[2, "mxaisbr_Face"])
-    assert np.isnan(out.loc[1, "mxaisbr_Extremities"])
+    first_row = out.iloc[0]
+    second_row = out.iloc[1]
+    third_row = out.iloc[2]
+    assert np.isnan(first_row["mxaisbr_HeadNeck"])
+    assert np.isnan(third_row["mxaisbr_Face"])
+    assert np.isnan(second_row["mxaisbr_Extremities"])
     assert out["inj_HeadNeck"].tolist() == [0, 1, 1]
     assert out["severe_HeadNeck"].tolist() == [0, 0, 1]
     assert out["inj_Chest"].tolist() == [1, 0, 1]
     assert out["severe_Chest"].tolist() == [1, 0, 0]
 
 
-def test_verification_level_columns() -> None:
+def test_add_one_hot_features_creates_verification_level_columns() -> None:
     df = pd.DataFrame(
         {
             "SEX": [1, 2, 3, 1],

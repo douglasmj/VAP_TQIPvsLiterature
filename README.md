@@ -49,10 +49,10 @@ The file is a standard TQIP export covering years 2017–2022.
    - `riss < 16`
 4. **Harmonize binary variables** for cross-year consistency:
    - `ETHNICITY`: `2 -> 0` (`1 = Hispanic`, `2 = Not Hispanic`)
-   - `SUPPLEMENTALOXYGEN`: `1 -> 0`, `2 -> 1`
-   - `RESPIRATORYASSISTANCE`: `1 -> 0`, `2 -> 1`
-   - `WITHDRAWALLST`: `2 -> 0`
-   - `PREHOSPITALCARDIACARREST`: `2 -> 0`
+   - `SUPPLEMENTALOXYGEN`: `1 -> 0`, `2 -> 1` (`1 = No`, `2 = Yes`)
+   - `RESPIRATORYASSISTANCE`: `1 -> 0`, `2 -> 1` (`1 = No`, `2 = Yes`)
+   - `WITHDRAWALLST`: `2 -> 0` (harmonize shifted year-specific coding to binary)
+   - `PREHOSPITALCARDIACARREST`: `2 -> 0` (same year-specific harmonization pattern)
    - `HC_RESPIRATORY`: unchanged (already 0/1)
    Value counts are printed before/after recoding for auditability.
 5. **Normalize temperature units** using a sanity check:
