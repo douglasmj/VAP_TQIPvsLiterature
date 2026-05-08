@@ -7,6 +7,7 @@ import pandas as pd
 from src.cleaning_utils import (
     AIS_COLUMNS,
     OHE_RENAME_MAP,
+    RAW_ENCODED_COLUMNS_TO_DROP,
     add_verification_level_columns,
     apply_cohort_exclusions,
     drop_original_encoded_columns,
@@ -198,7 +199,7 @@ def main() -> None:
         rename_map=OHE_RENAME_MAP,
     )
     vap_engineered = add_verification_level_columns(vap_engineered)
-    vap_ohe = drop_original_encoded_columns(vap_engineered, columns=["SEX", "HMRRHGCTRLSURGTYPE", "VERIFICATIONLEVEL"])
+    vap_ohe = drop_original_encoded_columns(vap_engineered, columns=list(RAW_ENCODED_COLUMNS_TO_DROP))
     print(f"  Final feature count for export: {vap_ohe.shape[1]}")
 
     _section("GENERATE EXPLORATORY FIGURES")
