@@ -4,10 +4,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from src.cleaning_utils import (
-    AIS_COLUMNS,
-    OHE_RENAME_MAP,
-    RAW_ENCODED_COLUMNS_TO_DROP,
+from vap_tqip.cleaning import (
     add_verification_level_columns,
     apply_cohort_exclusions,
     drop_original_encoded_columns,
@@ -20,7 +17,14 @@ from src.cleaning_utils import (
     summarize_raw_cohort,
     validate_required_columns,
 )
-from src.plotting_utils import (
+from vap_tqip.constants import (
+    AIS_COLUMNS,
+    CAT_FEATURES,
+    NUM_FEATURES,
+    OHE_RENAME_MAP,
+    RAW_ENCODED_COLUMNS_TO_DROP,
+)
+from vap_tqip.plotting import (
     plot_categorical_feature_distributions,
     plot_numeric_feature_distributions,
     plot_patient_count_by_year,
@@ -40,83 +44,6 @@ BASE_DIR = Path(__file__).parent
 INPUT_FILE = BASE_DIR / "data" / "raw" / "VAP_TQIP_2017-2022.xlsx"
 OUTPUT_CSV = BASE_DIR / "data" / "processed" / "vap_ohe.csv"
 OUTPUT_FIG_DIR = BASE_DIR / "figures"
-
-CAT_FEATURES = [
-    "HC_VAPNEUMONIA",
-    "WHITE",
-    "BLACK",
-    "ETHNICITY",
-    "PACIFICISLANDER",
-    "AMERICANINDIAN",
-    "ASIAN",
-    "RACEOTHER",
-    "WITHDRAWALLST",
-    "INTERFACILITYTRANSFER",
-    "RESPIRATORYASSISTANCE",
-    "SUPPLEMENTALOXYGEN",
-    "PREHOSPITALCARDIACARREST",
-    "VERIFICATIONLEVEL",
-    "Mortality",
-    "CC_CHEMO",
-    "CC_CIRRHOSIS",
-    "CC_COPD",
-    "CC_CVA",
-    "CC_DIABETES",
-    "CC_DISCANCER",
-    "CC_FUNCTIONAL",
-    "CC_CHF",
-    "CC_RENAL",
-    "CC_SMOKING",
-    "ICP_Monitor",
-    "sex_male",
-    "sex_female",
-    "sex_non-binary",
-    "surg_none",
-    "surg_laparotomy",
-    "surg_thoracotomy",
-    "surg_sternotomy",
-    "surg_extremity",
-    "surg_neck",
-    "surg_amputation",
-    "surg_skin_softtissue",
-    "surg_pelvic_packing",
-    "inj_HeadNeck",
-    "inj_Face",
-    "inj_Chest",
-    "inj_Abdomen",
-    "inj_Extremities",
-    "L1",
-    "L2",
-    "L3",
-]
-
-NUM_FEATURES = [
-    "TOTALVENTDAYS",
-    "AGEyears",
-    "HMRRHGCTRLSURGMins",
-    "HMRRHGCTRLSURGDays",
-    "WITHDRAWALLSTMins",
-    "WITHDRAWALLSTDays",
-    "TOTALICULOS",
-    "Hospital_LOS_Hr",
-    "Hospital_LOS_Days",
-    "riss",
-    "mxaisbr_HeadNeck",
-    "mxaisbr_Face",
-    "mxaisbr_Chest",
-    "mxaisbr_Abdomen",
-    "mxaisbr_Extremities",
-    "SBP",
-    "PULSERATE",
-    "TEMPERATURE",
-    "RESPIRATORYRATE",
-    "PULSEOXIMETRY",
-    "PRBC_4",
-    "FFP_4",
-    "PLT_4",
-    "WB",
-    "WB_time_mins",
-]
 
 
 # ---------------------------------------------------------------------------
