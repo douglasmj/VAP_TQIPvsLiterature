@@ -2,9 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.cleaning_utils import (
-    AIS_COLUMNS,
-    OHE_RENAME_MAP,
+from vap_tqip.cleaning import (
     add_verification_level_columns,
     apply_cohort_exclusions,
     harmonize_binary_variables,
@@ -13,6 +11,7 @@ from src.cleaning_utils import (
     process_ais_features,
     validate_required_columns,
 )
+from vap_tqip.constants import AIS_COLUMNS, OHE_RENAME_MAP
 
 
 def test_validate_required_columns_raises_for_missing_columns() -> None:

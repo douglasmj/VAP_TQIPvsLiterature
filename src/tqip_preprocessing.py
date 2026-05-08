@@ -5,9 +5,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from src.cleaning_utils import (
-    AIS_COLUMNS,
-    OHE_RENAME_MAP,
+from vap_tqip.cleaning import (
     add_verification_level_columns,
     apply_cohort_exclusions,
     drop_original_encoded_columns,
@@ -17,7 +15,8 @@ from src.cleaning_utils import (
     process_ais_features,
     validate_required_columns,
 )
-from src.plotting_utils import (
+from vap_tqip.constants import AIS_COLUMNS, OHE_RENAME_MAP
+from vap_tqip.plotting import (
     plot_categorical_feature_distributions,
     plot_numeric_feature_distributions,
     plot_patient_count_by_year,

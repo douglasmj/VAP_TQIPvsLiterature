@@ -10,11 +10,14 @@ estimates.
 
 ```
 VAP_TQIPvsLiterature/
+├── pyproject.toml                         # package configuration — makes vap_tqip installable
 ├── TQIP_data_exploration_cleaning.py      # thin end-to-end script entry point
 ├── src/
-│   ├── cleaning_utils.py                  # notebook-friendly cleaning + feature engineering helpers
-│   ├── plotting_utils.py                  # notebook-friendly plotting helpers
-│   └── tqip_preprocessing.py              # compatibility wrapper module
+│   └── vap_tqip/                          # installable package
+│       ├── __init__.py                    # re-exports all user-facing names
+│       ├── cleaning.py                    # cleaning + feature engineering functions
+│       ├── plotting.py                    # exploratory plotting functions
+│       └── constants.py                   # AIS columns, feature lists, rename maps
 ├── notebooks/
 │   └── tqip_preprocessing_example.ipynb   # step-by-step notebook walkthrough
 ├── tests/
@@ -25,6 +28,64 @@ VAP_TQIPvsLiterature/
 │   └── processed/                         # cleaned outputs written here (not tracked)
 └── figures/                               # exploratory figures written here (not tracked)
 ```
+
+---
+
+## Installation
+
+### Install the package locally (required before running scripts or notebooks)
+
+```bash
+pip install -e .
+```
+
+This installs `vap_tqip` in editable mode so it is importable from anywhere in
+the same Python environment, including from notebooks outside the repo directory.
+
+### Install with development extras (tests and notebook support)
+
+```bash
+pip install -e ".[dev]"
+```
+
+### Legacy dependency install
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+## Using the package in a notebook
+
+Once installed, import directly from `vap_tqip`:
+
+```python
+from vap_tqip.cleaning import (
+    load_tqip_data,
+    validate_required_columns,
+    summarize_raw_cohort,
+    apply_cohort_exclusions,
+    harmonize_binary_variables,
+    normalize_temperature_to_celsius,
+    process_ais_features,
+    one_hot_encode_features,
+    add_verification_level_columns,
+    drop_original_encoded_columns,
+)
+from vap_tqip.constants import AIS_COLUMNS, OHE_RENAME_MAP
+from vap_tqip.plotting import plot_patient_count_by_year
+```
+
+Or import everything from the top-level package:
+
+```python
+from vap_tqip import load_tqip_data, apply_cohort_exclusions
+```
+
+Because the package is installed in your environment, these imports work from
+any notebook — even notebooks stored outside the repository folder — as long as
+the same environment has `vap_tqip` installed.
 
 ---
 
@@ -119,10 +180,10 @@ See `notebooks/tqip_preprocessing_example.ipynb` for a notebook-oriented workflo
 
 ## How to run
 
-### 1. Install dependencies
+### 1. Install the package
 
 ```bash
-pip install -r requirements.txt
+pip install -e .
 ```
 
 ### 2. Place raw data
