@@ -10,16 +10,20 @@ estimates.
 
 ```
 VAP_TQIPvsLiterature/
-├── TQIP_data_exploration_cleaning.py   # data-cleaning and exploration script
+├── TQIP_data_exploration_cleaning.py      # thin end-to-end script entry point
 ├── src/
-│   └── tqip_preprocessing.py           # reusable preprocessing helpers
+│   ├── cleaning_utils.py                  # notebook-friendly cleaning + feature engineering helpers
+│   ├── plotting_utils.py                  # notebook-friendly plotting helpers
+│   └── tqip_preprocessing.py              # compatibility wrapper module
+├── notebooks/
+│   └── tqip_preprocessing_example.ipynb   # step-by-step notebook walkthrough
 ├── tests/
-│   └── test_tqip_preprocessing.py      # unit tests for preprocessing logic
-├── requirements.txt                    # Python dependencies
+│   └── test_tqip_preprocessing.py         # unit tests for preprocessing logic
+├── requirements.txt                       # Python dependencies
 ├── data/
-│   ├── raw/                            # place raw input files here (not tracked)
-│   └── processed/                      # cleaned outputs written here (not tracked)
-└── figures/                            # exploratory figures written here (not tracked)
+│   ├── raw/                               # place raw input files here (not tracked)
+│   └── processed/                         # cleaned outputs written here (not tracked)
+└── figures/                               # exploratory figures written here (not tracked)
 ```
 
 ---
@@ -36,57 +40,80 @@ The file is a standard TQIP export covering years 2017–2022.
 
 ---
 
-## Workflow
+## Recommended function order (notebook-friendly)
 
-`TQIP_data_exploration_cleaning.py` runs the following preprocessing workflow:
+The preprocessing utilities are designed for stepwise notebook use. Typical call order:
 
-1. **Validate required columns** and fail clearly if key columns are missing.
-2. **Print cohort counts** (overall and by `YODISCH` discharge year).
-3. **Apply exclusions in order**, printing remaining patients after each:
+1. `load_tqip_data(path)`
+2. `validate_required_columns(df)`
+3. `summarize_raw_cohort(df)`
+4. `apply_cohort_exclusions(df, adult_age=18, min_riss=16)`
    - missing `YODISCH`
    - missing `AGEyears`
    - `AGEyears < 18`
    - `riss < 16`
-4. **Harmonize binary variables** for cross-year consistency:
-   - `ETHNICITY`: `2 -> 0` (`1 = Hispanic`, `2 = Not Hispanic`)
-   - `SUPPLEMENTALOXYGEN`: `1 -> 0`, `2 -> 1` (`1 = No`, `2 = Yes`)
-   - `RESPIRATORYASSISTANCE`: `1 -> 0`, `2 -> 1` (`1 = No`, `2 = Yes`)
-   - `WITHDRAWALLST`: `2 -> 0` (harmonize shifted year-specific coding to binary)
-   - `PREHOSPITALCARDIACARREST`: `2 -> 0` (same year-specific harmonization pattern)
-   - `HC_RESPIRATORY`: unchanged (already 0/1)
-   Value counts are printed before/after recoding for auditability.
-5. **Normalize temperature units** using a sanity check:
-   likely Fahrenheit values (`>45` and `<=120`) are converted to Celsius.
-6. **Handle AIS fields**:
-   - keep AIS scores numeric (not one-hot encoded)
-   - recode `9` (unknown) to `NaN`
-   - create region injury indicators (`inj_*`) where AIS `> 0`
-   - create severe injury indicators (`severe_*`) where AIS `>= 3`
-7. **Feature engineering / one-hot encoding**:
-   - one-hot encode `SEX` and `HMRRHGCTRLSURGTYPE`
-   - rename OHE columns using readable names from the TQIP mapping
-   - derive trauma center verification OHE columns: `L1`, `L2`, `L3`, `L_unkn`
-   - drop original encoded columns (`SEX`, `HMRRHGCTRLSURGTYPE`, `VERIFICATIONLEVEL`)
-8. **Generate exploratory figures** in `figures/`:
-   - patient count by discharge year
-   - `WITHDRAWALLST` histograms split by year (2017–2022)
-   - temperature distribution figure
-   - numeric feature distribution grid
-   - categorical feature distribution grid
-9. **Write final model-ready output** to `data/processed/vap_ohe.csv`.
+5. `harmonize_binary_variables(df)`
+   - `ETHNICITY`: `2 -> 0`
+   - `SUPPLEMENTALOXYGEN`: `1 -> 0`, `2 -> 1`
+   - `RESPIRATORYASSISTANCE`: `1 -> 0`, `2 -> 1`
+   - `WITHDRAWALLST`: `2 -> 0`
+   - `PREHOSPITALCARDIACARREST`: `2 -> 0`
+   - `HC_RESPIRATORY`: unchanged
+6. `normalize_temperature_to_celsius(df)`
+7. `process_ais_features(df, ais_cols, ais_thresh=3)`
+   - keep AIS body-region columns ordinal
+   - recode AIS `9 -> NaN`
+   - add `inj_*` for AIS `> 0`
+   - add `severe_*` for AIS `>= 3`
+8. `one_hot_encode_features(df, ["SEX", "HMRRHGCTRLSURGTYPE"], rename_map=OHE_RENAME_MAP)`
+9. `add_verification_level_columns(df)`
+10. `drop_original_encoded_columns(df, ["SEX", "HMRRHGCTRLSURGTYPE", "VERIFICATIONLEVEL"])`
+
+`build_vap_ohe_dataset(df, ...)` is also available as a convenience wrapper.
+
+---
+
+## Script workflow
+
+`TQIP_data_exploration_cleaning.py` keeps a thin orchestration layer and runs the same preprocessing and plotting steps end-to-end, including:
+
+- clear required-column validation (`HC_PNEUMONIA` included for downstream modeling use)
+- ordered exclusions with remaining patient counts printed after each step
+- binary harmonization audits
+- temperature sanity-check conversion to Celsius
+- AIS unknown handling (`9 -> NaN`) + injury/severity derived columns
+- one-hot encoding of `SEX` and `HMRRHGCTRLSURGTYPE` with readable column names
+- trauma center verification derived columns (`L1`, `L2`, `L3`, `L_unkn`)
+- dropping raw encoded source columns from export
+- exploratory figure generation
+- final export to `data/processed/vap_ohe.csv`
+
+---
+
+## Notebook usage
+
+See `notebooks/tqip_preprocessing_example.ipynb` for a notebook-oriented workflow that demonstrates:
+
+- loading and validating raw data
+- summarizing cohort size and year counts
+- applying exclusions and reviewing remaining counts
+- harmonizing variables and checking value counts
+- engineering AIS and encoded features
+- generating exploratory figures
+- inspecting/saving the final dataframe
 
 ---
 
 ## Outputs
 
-| Path                             | Description                                    |
-|----------------------------------|------------------------------------------------|
-| `figures/patient_count_by_year.png` | Patient count by discharge year             |
-| `figures/withdrawal_lst_by_year.png` | WITHDRAWALLST histograms split by year      |
-| `figures/temperature_distribution.png` | Temperature distribution exploration       |
-| `figures/numeric_feature_distributions.png` | Numeric feature distribution grid      |
-| `figures/categorical_feature_distributions.png` | Categorical feature distribution grid |
-| `data/processed/vap_ohe.csv`     | Harmonized + engineered analysis-ready dataset |
+| Path                                         | Description                                    |
+|----------------------------------------------|------------------------------------------------|
+| `figures/patient_count_by_year.png`          | Patient count by discharge year                |
+| `figures/withdrawal_lst_by_year.png`         | WITHDRAWALLST histograms split by year         |
+| `figures/temperature_distribution.png`       | Temperature distribution exploration            |
+| `figures/numeric_feature_distributions.png`  | Numeric feature distribution grid               |
+| `figures/categorical_feature_distributions.png` | Categorical feature distribution grid        |
+| `data/processed/vap_ohe.csv`                 | Harmonized + engineered analysis-ready dataset |
 
 ---
 
@@ -114,5 +141,3 @@ python TQIP_data_exploration_cleaning.py
 pytest -q
 ```
 
-The script prints labelled cohort/exclusion summaries, recoding audits, and
-writes processed outputs and figures to the locations listed above.
