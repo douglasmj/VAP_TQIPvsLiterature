@@ -21,3 +21,8 @@ __pycache__/
 # OS / editor artefacts
 .DS_Store
 *.swp
+
+# Package build artifacts
+*.egg-info/
+dist/
+build/
